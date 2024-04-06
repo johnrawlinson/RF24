@@ -24,8 +24,8 @@
 #else
     // pins available on (ADAFRUIT_ITSYBITSY_RP2040 || ADAFRUIT_FEATHER_RP2040 || Pico_board || Sparkfun_ProMicro || SparkFun MicroMod)
 
-    #define CE_PIN  7
-    #define CSN_PIN 8
+    #define CE_PIN  20
+    #define CSN_PIN 17
     #define IRQ_PIN 6
 #endif // board detection macro defs
 

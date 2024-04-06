@@ -204,7 +204,7 @@ uint8_t RF24::read_register(uint8_t reg)
 #if defined(RF24_LINUX) || defined(RF24_RP2)
     beginTransaction();
 
-    uint8_t* prx = spi_rxbuff;
+        uint8_t* prx = spi_rxbuff;
     uint8_t* ptx = spi_txbuff;
     *ptx++ = (R_REGISTER | reg);
     *ptx++ = RF24_NOP; // Dummy operation, just for reading
@@ -1111,6 +1111,10 @@ bool RF24::_init_radio()
     // spectrum.
     setChannel(76);
 
+    for (uint8_t reg; reg <= FEATURE; reg++)
+    {
+        printf ("Register %x is %x\n\r", reg, read_register(reg));
+    }
     // Reset current status
     // Notice reset and flush is the last thing we do
     write_register(NRF_STATUS, _BV(RX_DR) | _BV(TX_DS) | _BV(MAX_RT));

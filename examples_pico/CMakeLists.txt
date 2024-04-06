@@ -37,8 +37,8 @@ foreach(example ${EXAMPLES_LIST})
     )
 
     # specify USB port as default serial communication's interface (not UART RX/TX pins)
-    pico_enable_stdio_usb(${example} 1)
-    pico_enable_stdio_uart(${example} 0)
+    pico_enable_stdio_usb(${example} 0)
+    pico_enable_stdio_uart(${example} 1)
 
     # create map/bin/hex file etc.
     pico_add_extra_outputs(${example})

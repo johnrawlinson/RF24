@@ -15,7 +15,7 @@ void SPI::begin(spi_inst_t* hw_id, uint8_t _sck, uint8_t _tx, uint8_t _rx)
     gpio_set_function(_sck, GPIO_FUNC_SPI);
     gpio_set_function(_tx, GPIO_FUNC_SPI);
     gpio_set_function(_rx, GPIO_FUNC_SPI);
-}
+    }
 
 uint8_t SPI::transfer(uint8_t tx_)
 {

@@ -44,7 +44,7 @@
 
 #include "pico/stdlib.h"  // printf(), sleep_ms(), getchar_timeout_us(), to_us_since_boot(), get_absolute_time()
 #include "pico/bootrom.h" // reset_usb_boot()
-#include <tusb.h>         // tud_cdc_connected()
+//#include <tusb.h>         // tud_cdc_connected()
 #include <RF24.h>         // RF24 radio object, rf24_min()
 #include "defaultPins.h"  // board presumptive default pin numbers for CE_PIN and CSN_PIN
 
@@ -60,20 +60,21 @@ uint8_t values[num_channels];     // the array to store summary of signal counts
 // that the RF signal's preamble is part of the packet/payload.
 const uint8_t noiseAddress[][6] = {{0x55, 0x55}, {0xAA, 0xAA}, {0x0A, 0xAA}, {0xA0, 0xAA}, {0x00, 0xAA}, {0xAB, 0xAA}};
 
-const int num_reps = 100; // number of passes for each scan of the entire spectrum
+const int num_reps = 126; // number of passes for each scan of the entire spectrum
 
 void printHeader();
 void scanChannel(uint8_t);
 void initRadio();
+bool SetNextAddress();
 
 int main()
 {
     stdio_init_all(); // init necessary IO for the RP2040
-
+    
     // wait here until the CDC ACM (serial port emulation) is connected
-    while (!tud_cdc_connected()) {
-        sleep_ms(10);
-    }
+//    while (!tud_cdc_connected()) {
+//        sleep_ms(10);
+//    }
 
     // print example's name
     printf("RF24/examples_pico/scanner\n");
@@ -100,19 +101,26 @@ int main()
         int rep_counter = num_reps;
         while (rep_counter--) {
 
-            for (uint8_t i = 0; i < num_channels; ++i) {
-
+            for (uint8_t i = 0; i < num_channels; ++i) 
+            {
+                printf("Scanning channel %d\n\r", i);
                 // Select this channel
-                scanChannel(i); // updates values[i] accordingly
-
-                // Print out channel measurements, clamped to a single hex digit
-                if (values[i])
-                    printf("%x", rf24_min(0xf, values[i]));
-                else
-                    printf("-");
+                bool last_address_reached = false;                
+                while (!last_address_reached)
+                {
+                    last_address_reached = SetNextAddress();
+                    scanChannel(i); // updates values[i] accordingly
+                }
             }
-            printf("\r");
         }
+        for (uint8_t i = 0; i < num_channels; ++i) {
+            // Print out channel measurements, clamped to a single hex digit      
+            if (values[i])
+                printf("%x", rf24_min(0xf, values[i]));
+            else
+                printf("-");
+        }
+        printf("\r\n");
         printf("\n");
 
         char input = getchar_timeout_us(0); // get char from buffer for user input
@@ -128,14 +136,61 @@ int main()
     return 0;
 }
 
+static uint8_t addresses [6][2];
+static uint8_t current_address[2];
+bool IncrementAddress()
+{
+    current_address[1]++;
+    if (current_address[1] > 'Z')
+    {
+        current_address[1] = '0';
+        current_address[0]++;
+        if (current_address[0] > 'Z')
+        {
+            current_address[0] = '0';
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SetNextAddress()
+{
+    bool reached_last_address = false;
+    for (uint8_t i = 0; i < 6; ++i) 
+    {
+        if (reached_last_address)
+        {
+            IncrementAddress();
+        } 
+        else
+        {
+            reached_last_address = IncrementAddress();
+        }
+        addresses[i][0] = current_address[0];
+        addresses[i][1] = current_address[1];
+        radio.closeReadingPipe(i);
+        radio.openReadingPipe(i, addresses[i]);
+    }
+    return reached_last_address;
+}
+
 void initRadio()
 {
+    current_address[0] = '0';
+    current_address[1] = '0';
+    for (int i = 0; i++; i < 6)
+    {
+        addresses[i][0] = current_address[0];
+        addresses[i][1] = current_address[1];
+        IncrementAddress();
+    }
     // configure the radio
     radio.setAutoAck(false);  // Don't acknowledge arbitrary signals
     radio.disableCRC();       // Accept any signal we find
     radio.setAddressWidth(2); // A reverse engineering tactic (not typically recommended)
     for (uint8_t i = 0; i < 6; ++i) {
-        radio.openReadingPipe(i, noiseAddress[i]);
+        radio.openReadingPipe(i, addresses[i]);
     }
 
     // To set the radioNumber via the Serial terminal on startup
@@ -163,18 +218,58 @@ void initRadio()
     // radio.printPrettyDetails();
 }
 
+bool IsAscii(uint8_t character)
+{
+    if (character >= '0' && character <= 'Z')
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void scanChannel(uint8_t channel)
 {
     radio.setChannel(channel);
 
     // Listen for a little
     radio.startListening();
-    sleep_us(130);
+    sleep_us(500000);
     bool foundSignal = radio.testRPD();
     radio.stopListening();
 
     // Did we get a carrier?
     if (foundSignal || radio.testRPD() || radio.available()) {
+        uint8_t pipe_num;
+        while (radio.available(&pipe_num))
+        {
+            uint8_t rx_buff[32];
+
+            int nbytes = radio.read_register(0x11+pipe_num);
+
+            radio.read(rx_buff, nbytes);
+            if (IsAscii(rx_buff[0] && IsAscii(rx_buff[0])))
+            {
+                printf("Channel %d, Pipe %d, %d bytes, Address %c %c  Data: ", channel, pipe_num, nbytes, 
+                    addresses[pipe_num][0], addresses[pipe_num][1]);
+                for (int i = 0; i < sizeof(rx_buff); i++)
+                {
+                    if (rx_buff[i] >= '0' && rx_buff[i] <= 'Z')
+                    {
+                        printf("%2c ", rx_buff[i]);
+                    }
+                    else
+                    {
+                        printf("%2x ", rx_buff[i]);
+                        //printf(" - ");
+                    }
+
+                }
+                printf("\n\r");    
+            }    
+        }
         ++values[channel];
         radio.flush_rx();
     }

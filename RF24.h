@@ -159,7 +159,7 @@ protected:
     uint8_t addr_width;
     /** Whether dynamic payloads are enabled. */
     bool dynamic_payloads_enabled;
-
+public:
     /**
      * Read a chunk of data in from a register
      *

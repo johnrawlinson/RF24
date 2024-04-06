@@ -30,6 +30,7 @@ else ifeq ($(DRIVER), pigpio)
 OBJECTS+=spi.o gpio.o interrupt.o compatibility.o
 endif
 
+add_
 # make all
 # reinstall the library after each recompilation
 all: $(LIBNAME)

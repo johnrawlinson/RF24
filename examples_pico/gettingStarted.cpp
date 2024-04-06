@@ -12,7 +12,7 @@
  */
 #include "pico/stdlib.h"  // printf(), sleep_ms(), getchar_timeout_us(), to_us_since_boot(), get_absolute_time()
 #include "pico/bootrom.h" // reset_usb_boot()
-#include <tusb.h>         // tud_cdc_connected()
+//#include <tusb.h>         // tud_cdc_connected()
 #include <RF24.h>         // RF24 radio object
 #include "defaultPins.h"  // board presumptive default pin numbers for CE_PIN and CSN_PIN
 
@@ -39,9 +39,9 @@ bool setup()
     bool radioNumber = 1; // 0 uses address[0] to transmit, 1 uses address[1] to transmit
 
     // wait here until the CDC ACM (serial port emulation) is connected
-    while (!tud_cdc_connected()) {
-        sleep_ms(10);
-    }
+    //while (!tud_cdc_connected()) {
+    //    sleep_ms(10);
+    //}
 
     // initialize the transceiver on the SPI bus
     if (!radio.begin()) {
