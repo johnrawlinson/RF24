@@ -1,3 +1,9 @@
+cmake_minimum_required(VERSION 3.12)
+
+if (DEFINED ENV{PICO_SDK_PATH})
+    set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})
+endif()
+message("PICO_SDK_PATH is ('${PICO_SDK_PATH}')")
 # Check if we are building a pico-sdk based project
 # (or more exactly: if we just got included in a pico-sdk based project)
 if (PICO_SDK_PATH)
@@ -6,7 +12,7 @@ if (PICO_SDK_PATH)
     return()
 endif()
 
-cmake_minimum_required(VERSION 3.15)
+#cmake_minimum_required(VERSION 3.15)
 
 # Set the project name to your project name
 project(RF24 C CXX)
@@ -172,3 +178,5 @@ if("${CMAKE_CROSSCOMPILING}" STREQUAL "FALSE")
     install(CODE "message(STATUS \"Updating ldconfig\")")
     install(CODE "execute_process(COMMAND ldconfig)")
 endif()
+
+add_subdirectory(examples_pico)
